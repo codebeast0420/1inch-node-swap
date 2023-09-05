@@ -17,20 +17,28 @@ const apiBaseUrl = "https://api.1inch.dev/swap/v5.2/" + chainId;
 
 const headers = { headers: { Authorization: `Bearer ${process.env.INCHAPI_KEY}`, accept: "application/json" } };
 
-async function buildTxForApproveTradeWithRouter(tokenAddress, walletAddress) {
-  const url = `https://api.1inch.dev/swap/v5.2/56/approve/transaction?tokenAddress=${tokenAddress}`;
+function apiRequestUrl(methodName, queryParams) {
+  return apiBaseUrl + methodName + "?" + new URLSearchParams(queryParams).toString();
+}
 
-  const transaction = await fetch(url, headers).then((res) => {
-    if (res.status == 200) {
-      return res.json();
-    }
-    else {
-      return "failed"
-    }
-  });
+async function buildTxForApproveTradeWithRouter(tokenAddress, walletAddress, amount) {
+  const url = apiRequestUrl("/approve/transaction", amount ? { tokenAddress, amount } : { tokenAddress });
+  // const url = `https://api.1inch.dev/swap/v5.2/56/approve/transaction?tokenAddress=${tokenAddress}`;
+
+  // const transaction = await fetch(url, headers).then((res) => {
+  //   if (res.status == 200) {
+  //     return res.json();
+  //   }
+  //   else {
+  //     console.log(res);
+  //     return "failed"
+  //   }
+  // });
+
+  const transaction = await fetch(url, headers).then((res) => res.json());
 
   console.log('transactions', transaction);
-  if (transaction == "failed") return "failed"
+  if (!transaction) return "failed"
   else {
     const gasLimit = await web3.eth.estimateGas({
       ...transaction,
@@ -47,16 +55,9 @@ async function buildTxForApproveTradeWithRouter(tokenAddress, walletAddress) {
 async function tokenSwap(tokenAddressOne, tokenAddressTwo, amount, walletAddress, slippage) {
   const url = `https://api.1inch.dev/swap/v5.2/56/swap?src=${tokenAddressOne}&dst=${tokenAddressTwo}&amount=${amount}&from=${walletAddress}&slippage=${slippage}`;
 
-  const transaction = await fetch(url, headers).then((res) => {
-    if (res.status == 200) {
-      return res.json();
-    }
-    else {
-      return "failed"
-    }
-  });
+  const transaction = await fetch(url, headers).then((res) => res.json()).catch((err) => console.log(err));
   console.log("transaction", transaction);
-  if (transaction == "failed") return "failed"
+  if (!transaction) return "failed"
   else {
     const gasLimit = await web3.eth.estimateGas({
       ...transaction,
