@@ -22,14 +22,14 @@ async function buildTxForApproveTradeWithRouter(tokenAddress, walletAddress) {
 
   const transaction = await fetch(url, headers).then((res) => {
     if (res.status == 200) {
-      res.json();
+      return res.json();
     }
     else {
       return "failed"
     }
   });
 
-  console.log(transaction);
+  console.log('transactions', transaction);
   if (transaction == "failed") return "failed"
   else {
     const gasLimit = await web3.eth.estimateGas({
@@ -49,7 +49,7 @@ async function tokenSwap(tokenAddressOne, tokenAddressTwo, amount, walletAddress
 
   const transaction = await fetch(url, headers).then((res) => {
     if (res.status == 200) {
-      res.json();
+      return res.json();
     }
     else {
       return "failed"
@@ -91,8 +91,10 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.post('/approve', async (req, res) => {
+  console.log("approve")
   const transactionForSign = await buildTxForApproveTradeWithRouter(req.body.tokenAddress, req.body.walletAddress);
   console.log("Transaction for approve: ", transactionForSign);
+
   if (transactionForSign == "failed") res.send({ result: "failed" })
   else {
     const gasAsString = transactionForSign.gas.toString();
