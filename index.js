@@ -13,7 +13,6 @@ const yesno = require("yesno");
 const chainId = 56; // Chain ID for Binance Smart Chain (BSC)
 const web3RpcUrl = "https://bsc-dataseed.binance.org"; // URL for BSC node
 const web3 = new Web3(web3RpcUrl);
-const walletAddress = process.env.WALLET_ADDRESS; // Your wallet addressE!
 const apiBaseUrl = "https://api.1inch.dev/swap/v5.2/" + chainId;
 
 const headers = { headers: { Authorization: `Bearer ${process.env.INCHAPI_KEY}`, accept: "application/json" } };
@@ -36,8 +35,8 @@ async function broadCastRawTransaction(rawTransaction) {
     });
 }
 
-async function buildTxForApproveTradeWithRouter(tokenAddress, amount) {
-  const url = apiRequestUrl("/approve/transaction", amount ? { tokenAddress, amount } : { tokenAddress });
+async function buildTxForApproveTradeWithRouter(tokenAddress, walletAddress) {
+  const url = apiRequestUrl("/approve/transaction", { tokenAddress });
 
   const transaction = await fetch(url, headers).then((res) => res.json());
 
@@ -82,7 +81,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.post('/approve', async (req, res) => {
-  const transactionForSign = await buildTxForApproveTradeWithRouter(req.body.tokenAddress);
+  const transactionForSign = await buildTxForApproveTradeWithRouter(req.body.tokenAddress, req.body.walletAddress);
   console.log("Transaction for approve: ", transactionForSign);
   const gasAsString = transactionForSign.gas.toString();
 
@@ -90,8 +89,8 @@ app.post('/approve', async (req, res) => {
 })
 
 app.post('/swap', async (req, res) => {
-  const { tokenAddressOne, tokenAddressTwo, amount, walletAddr, slippage } = req.body;
-  const transactionForSign = await tokenSwap(tokenAddressOne, tokenAddressTwo, amount, walletAddr, slippage);
+  const { tokenAddressOne, tokenAddressTwo, amount, walletAddress, slippage } = req.body;
+  const transactionForSign = await tokenSwap(tokenAddressOne, tokenAddressTwo, amount, walletAddress, slippage);
 
   console.log("Transaction for approve: ", transactionForSign);
   const gasAsString = transactionForSign.gas.toString();
