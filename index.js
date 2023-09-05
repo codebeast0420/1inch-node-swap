@@ -17,28 +17,10 @@ const apiBaseUrl = "https://api.1inch.dev/swap/v5.2/" + chainId;
 
 const headers = { headers: { Authorization: `Bearer ${process.env.INCHAPI_KEY}`, accept: "application/json" } };
 
-// Construct full API request URL
-function apiRequestUrl(methodName, queryParams) {
-  return apiBaseUrl + methodName + "?" + new URLSearchParams(queryParams).toString();
-}
-
-// Post raw transaction to the API and return transaction hash
-async function broadCastRawTransaction(rawTransaction) {
-  return fetch(broadcastApiUrl, {
-    method: "post",
-    body: JSON.stringify({ rawTransaction }),
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.INCHAPI_KEY}` },
-  })
-    .then((res) => res.json())
-    .then((res) => {
-      return res.transactionHash;
-    });
-}
-
 async function buildTxForApproveTradeWithRouter(tokenAddress, walletAddress) {
-  const url = apiRequestUrl("/approve/transaction", { tokenAddress });
+  const url = `https://api.1inch.dev/swap/v5.2/56/approve/transaction?tokenAddress=${tokenAddress}`;
 
-  const transaction = await fetch(url, headers).then((res) => res.json());
+  const transaction = await fetch(url, headers).then((res) => { console.log("result", res); res.json() });
 
   const gasLimit = await web3.eth.estimateGas({
     ...transaction,
@@ -67,6 +49,13 @@ async function tokenSwap(tokenAddressOne, tokenAddressTwo, amount, walletAddress
   };
 }
 
+async function getAllowlance(tokenAddress, walletAddress) {
+  const url = `https://api.1inch.dev/swap/v5.2/56/approve/allowance?tokenAddress=${tokenAddress}&walletAddress=${walletAddress}`;
+  const allowance = await fetch(url, headers).then((res) => res.json());
+
+  return allowance;
+}
+
 
 // Sign and post a transaction, return its hash
 // async function signAndSendTransaction(transaction) {
@@ -86,6 +75,15 @@ app.post('/approve', async (req, res) => {
   const gasAsString = transactionForSign.gas.toString();
 
   res.send({ result: { ...transactionForSign, gas: gasAsString } });
+})
+
+app.post('/allowance', async (req, res) => {
+  const { tokenAddress, walletAddress } = req.body;
+  const allowance = await getAllowlance(tokenAddress, walletAddress);
+
+  console.log("Allowance amount: ", allowance);
+
+  res.send({ result: allowance });
 })
 
 app.post('/swap', async (req, res) => {
