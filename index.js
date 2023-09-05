@@ -20,33 +20,54 @@ const headers = { headers: { Authorization: `Bearer ${process.env.INCHAPI_KEY}`,
 async function buildTxForApproveTradeWithRouter(tokenAddress, walletAddress) {
   const url = `https://api.1inch.dev/swap/v5.2/56/approve/transaction?tokenAddress=${tokenAddress}`;
 
-  const transaction = await fetch(url, headers).then((res) => { console.log("result", res); res.json() });
-
-  const gasLimit = await web3.eth.estimateGas({
-    ...transaction,
-    from: walletAddress,
+  const transaction = await fetch(url, headers).then((res) => {
+    if (res.status == 200) {
+      res.json();
+    }
+    else {
+      return "failed"
+    }
   });
 
-  return {
-    ...transaction,
-    gas: gasLimit,
-  };
+  console.log(transaction);
+  if (transaction == "failed") return "failed"
+  else {
+    const gasLimit = await web3.eth.estimateGas({
+      ...transaction,
+      from: walletAddress,
+    });
+
+    return {
+      ...transaction,
+      gas: gasLimit,
+    };
+  }
 }
 
 async function tokenSwap(tokenAddressOne, tokenAddressTwo, amount, walletAddress, slippage) {
   const url = `https://api.1inch.dev/swap/v5.2/56/swap?src=${tokenAddressOne}&dst=${tokenAddressTwo}&amount=${amount}&from=${walletAddress}&slippage=${slippage}`;
 
-  const transaction = await fetch(url, headers).then((res) => res.json());
-
-  const gasLimit = await web3.eth.estimateGas({
-    ...transaction,
-    from: walletAddress,
+  const transaction = await fetch(url, headers).then((res) => {
+    if (res.status == 200) {
+      res.json();
+    }
+    else {
+      return "failed"
+    }
   });
+  console.log("transaction", transaction);
+  if (transaction == "failed") return "failed"
+  else {
+    const gasLimit = await web3.eth.estimateGas({
+      ...transaction,
+      from: walletAddress,
+    });
 
-  return {
-    ...transaction,
-    gas: gasLimit,
-  };
+    return {
+      ...transaction,
+      gas: gasLimit,
+    };
+  }
 }
 
 async function getAllowlance(tokenAddress, walletAddress) {
@@ -72,9 +93,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.post('/approve', async (req, res) => {
   const transactionForSign = await buildTxForApproveTradeWithRouter(req.body.tokenAddress, req.body.walletAddress);
   console.log("Transaction for approve: ", transactionForSign);
-  const gasAsString = transactionForSign.gas.toString();
+  if (transactionForSign == "failed") res.send({ result: "failed" })
+  else {
+    const gasAsString = transactionForSign.gas.toString();
 
-  res.send({ result: { ...transactionForSign, gas: gasAsString } });
+    res.send({ result: { ...transactionForSign, gas: gasAsString } });
+  }
 })
 
 app.post('/allowance', async (req, res) => {
@@ -91,9 +115,12 @@ app.post('/swap', async (req, res) => {
   const transactionForSign = await tokenSwap(tokenAddressOne, tokenAddressTwo, amount, walletAddress, slippage);
 
   console.log("Transaction for approve: ", transactionForSign);
-  const gasAsString = transactionForSign.gas.toString();
+  if (transactionForSign == "failed") res.send({ result: "failed" })
+  else {
+    const gasAsString = transactionForSign.gas.toString();
 
-  res.send({ result: { ...transactionForSign, gas: gasAsString } });
+    res.send({ result: { ...transactionForSign, gas: gasAsString } });
+  }
 })
 
 app.get('/test', async (req, res) => {
